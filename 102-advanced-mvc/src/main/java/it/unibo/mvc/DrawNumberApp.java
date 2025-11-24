@@ -1,8 +1,15 @@
 package it.unibo.mvc;
 
+import java.io.BufferedReader;
+import java.io.File;
 import java.io.FileNotFoundException;
+import java.io.IOException;
+import java.io.InputStream;
+import java.io.InputStreamReader;
 import java.util.Arrays;
 import java.util.List;
+import java.util.Objects;
+import java.util.StringTokenizer;
 
 /**
  */
@@ -11,6 +18,11 @@ public final class DrawNumberApp implements DrawNumberViewObserver {
     private static final int MAX = 100;
     private static final int ATTEMPTS = 10;
 
+    private static final String ROOT = "config.yml";
+
+    private int minimum = MIN;
+    private int maximum = MAX;
+    private int attempts = ATTEMPTS;
     private final DrawNumber model;
     private final List<DrawNumberView> views;
 
@@ -27,7 +39,39 @@ public final class DrawNumberApp implements DrawNumberViewObserver {
             view.setObserver(this);
             view.start();
         }
-        this.model = new DrawNumberImpl(MIN, MAX, ATTEMPTS);
+        try {
+            configRead();
+        } catch (final IOException | NullPointerException e) {
+            for (final DrawNumberView view : this.views) {
+                view.displayError("Could not read the configuration file, using default parameters");
+            }
+            //System.out.println(e.getMessage());
+        }
+        finally {
+            this.model = new DrawNumberImpl(minimum, maximum, attempts);
+        }
+    }
+
+    private void configRead() throws IOException,NullPointerException {
+        final InputStream in = Objects.requireNonNull(
+            ClassLoader.getSystemResourceAsStream(ROOT)
+        );
+        String line;
+        try (BufferedReader br = new BufferedReader(new InputStreamReader(in))) {
+            while ((line = br.readLine()) != null) {
+                final StringTokenizer splitted = new StringTokenizer(line, ": ");
+                switch (splitted.nextToken()) {
+                    case "minimum":
+                        this.minimum = Integer.valueOf(splitted.nextToken());
+                        break;
+                    case "maximum":
+                        this.maximum = Integer.valueOf(splitted.nextToken());
+                        break;
+                    case "attempts":
+                        this.attempts = Integer.valueOf(splitted.nextToken());
+                }
+            }
+        }
     }
 
     @Override
@@ -66,7 +110,10 @@ public final class DrawNumberApp implements DrawNumberViewObserver {
      * @throws FileNotFoundException 
      */
     public static void main(final String... args) throws FileNotFoundException {
-        new DrawNumberApp(new DrawNumberViewImpl());
+        new DrawNumberApp(
+            new DrawNumberViewImpl(),
+            new PrintStreamView(System.getProperty("user.home") + File.separator + "output.txt"),
+            new PrintStreamView(System.out)
+        );
     }
-
 }
