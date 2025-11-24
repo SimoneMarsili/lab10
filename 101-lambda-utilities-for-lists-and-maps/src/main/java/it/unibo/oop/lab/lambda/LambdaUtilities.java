@@ -2,6 +2,7 @@ package it.unibo.oop.lab.lambda;
 
 import java.util.ArrayList;
 import java.util.HashMap;
+import java.util.LinkedHashSet;
 import java.util.List;
 import java.util.Map;
 import java.util.Optional;
@@ -12,9 +13,7 @@ import java.util.function.Supplier;
 import java.util.function.UnaryOperator;
 import java.util.stream.Collectors;
 import java.util.stream.IntStream;
-
-import static java.util.Collections.emptyList;
-import static java.util.Collections.emptyMap;
+// import java.util.stream.Stream;
 
 /**
  * This class will contain four utility functions on lists and maps, of which the first one is provided as example.
@@ -42,6 +41,7 @@ public final class LambdaUtilities {
      */
     public static <T> List<T> dup(final List<T> list, final UnaryOperator<T> op) {
         final List<T> l = new ArrayList<>(list.size() * 2);
+        // list.stream().flatMap(it -> Stream.of(it, op.apply(it))).toList();
         list.forEach(t -> {
             l.add(t);
             l.add(op.apply(t));
@@ -64,7 +64,9 @@ public final class LambdaUtilities {
         /*
          * Suggestion: consider Optional.filter
          */
-        return emptyList();
+        final List<Optional<T>> o = new ArrayList<>(list.size());
+        list.forEach(t -> o.add(Optional.of(t).filter(pre)));
+        return o;
     }
 
     /**
@@ -83,7 +85,18 @@ public final class LambdaUtilities {
         /*
          * Suggestion: consider Map.merge
          */
-        return emptyMap();
+        final Map<R, Set<T>> g = new HashMap<>();
+        list.forEach(t ->
+            g.merge(
+                op.apply(t),
+                new LinkedHashSet<>(Set.of(t)),
+                (existing, newValue) -> {
+                    existing.addAll(newValue);
+                    return existing;
+                }
+            )
+        );
+        return g;
     }
 
     /**
@@ -104,26 +117,28 @@ public final class LambdaUtilities {
          *
          * Keep in mind that a map can be iterated through its forEach method
          */
-        return emptyMap();
+        final Map<K, V> f = new HashMap<>();
+        map.forEach((k, v) -> f.put(k, v.orElseGet(def)));
+        return f;
     }
 
     /**
      * @param args
      *            ignored
      */
-    @SuppressWarnings("PMD.SystemPrintln")
+    // CHECKSTYLE: SystemPrintln OFF
     public static void main(final String[] args) {
         final List<Integer> li = IntStream.range(1, 8).boxed().collect(Collectors.toList());
-        System.out.println(dup(li, x -> x + 100));
+        System.out.println(dup(li, x -> x + 100)); // NOPMD
         /*
          * [1, 101, 2, 102, 3, 103, 4, 104, 5, 105, 6, 106, 7, 107]
          */
-        System.out.println(group(li, x -> x % 2 == 0 ? "even" : "odd"));
+        System.out.println(group(li, x -> x % 2 == 0 ? "even" : "odd")); // NOPMD
         /*
          * {odd=[1, 3, 5, 7], even=[2, 4, 6]}
          */
         final List<Optional<Integer>> opt = optFilter(li, x -> x % 3 == 0);
-        System.out.println(opt);
+        System.out.println(opt); // NOPMD
         /*
          * [Optional.empty, Optional.empty, Optional[3], Optional.empty,
          * Optional.empty, Optional[6], Optional.empty]
@@ -132,7 +147,7 @@ public final class LambdaUtilities {
         for (int i = 0; i < opt.size(); i++) {
             map.put(i, opt.get(i));
         }
-        System.out.println(fill(map, () -> (int) (-Math.random() * 10)));
+        System.out.println(fill(map, () -> (int) (-Math.random() * 10))); // NOPMD
         /*
          * {0=-2, 1=-7, 2=3, 3=-3, 4=-7, 5=6, 6=-3}
          */
